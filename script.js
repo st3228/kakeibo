@@ -148,59 +148,19 @@ async function processImageWithOCR(imageData) {
         // Show loading indicator
         document.getElementById('ocr-loading').style.display = 'flex';
         
-        // Check if Python processing is available
-        if (window.processImagePy) {
-            console.log('Using Python image processing');
-            
-            // Process image with Python
+        // Check if OCR worker is initialized
+        if (!ocrWorker) {
             try {
-                // Wait for PyScript to be fully loaded
-                if (document.querySelector('py-script').hasAttribute('ready')) {
-                    // Process image with Python
-                    const extractedInfo = await window.processImagePy(imageData);
-                    console.log('Python OCR結果:', extractedInfo);
-                    
-                    ocrResults = extractedInfo;
-                    displayOCRResults(extractedInfo);
-                } else {
-                    // Fallback to JavaScript OCR if PyScript is not ready
-                    console.log('PyScript not ready, falling back to JavaScript OCR');
-                    await processWithJavaScriptOCR(imageData);
-                }
+                await initOCR();
             } catch (error) {
-                console.error('Python OCR処理中にエラーが発生しました:', error);
-                // Fallback to JavaScript OCR
-                await processWithJavaScriptOCR(imageData);
+                console.error('OCRの初期化に失敗しました:', error);
+                return;
             }
-        } else {
-            // Fallback to JavaScript OCR
-            console.log('Python processing not available, using JavaScript OCR');
-            await processWithJavaScriptOCR(imageData);
         }
-    } catch (error) {
-        console.error('OCR処理中にエラーが発生しました:', error);
-    } finally {
-        // Hide loading indicator
-        document.getElementById('ocr-loading').style.display = 'none';
-    }
-}
-
-// Process image with JavaScript OCR (fallback)
-async function processWithJavaScriptOCR(imageData) {
-    // Check if OCR worker is initialized
-    if (!ocrWorker) {
-        try {
-            await initOCR();
-        } catch (error) {
-            console.error('OCRの初期化に失敗しました:', error);
-            return;
-        }
-    }
-    
-    try {
+        
         // Recognize text in the image
         const result = await ocrWorker.recognize(imageData);
-        console.log('JavaScript OCR結果:', result);
+        console.log('OCR結果:', result);
         
         // Extract information from OCR result
         const extractedInfo = extractInformationFromOCR(result);
@@ -209,7 +169,10 @@ async function processWithJavaScriptOCR(imageData) {
         // Display OCR results
         displayOCRResults(extractedInfo);
     } catch (error) {
-        console.error('JavaScript OCR処理中にエラーが発生しました:', error);
+        console.error('OCR処理中にエラーが発生しました:', error);
+    } finally {
+        // Hide loading indicator
+        document.getElementById('ocr-loading').style.display = 'none';
     }
 }
 

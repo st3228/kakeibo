@@ -7,17 +7,7 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     
-    <!-- PyScript -->
-    <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
-    <script defer src="https://pyscript.net/latest/pyscript.js"></script>
-    
-    <!-- Python dependencies -->
-    <py-config>
-        packages = ["pillow"]
-        
-        [[fetch]]
-        files = ["./image_processor.py"]
-    </py-config>
+    <!-- JavaScript OCR -->
 </head>
 <body>
     <div class="container">
@@ -143,23 +133,5 @@
             <p>レシートを解析中...</p>
         </div>
     </div>
-    
-    <!-- PyScript code -->
-    <py-script>
-        from image_processor import process_receipt_image
-        from pyodide.ffi import create_proxy, to_js
-        
-        # Expose Python function to JavaScript
-        def process_image_py(image_data):
-            result = process_receipt_image(image_data)
-            return to_js(result)
-        
-        # Create a proxy of the function
-        process_image_proxy = create_proxy(process_image_py)
-        
-        # Add the function to the window object
-        import js
-        js.window.processImagePy = process_image_proxy
-    </py-script>
 </body>
 </html>
