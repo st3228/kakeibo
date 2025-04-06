@@ -359,6 +359,24 @@ footer {
     color: #dc3545;
 }
 
+.auto-fill-message {
+    background-color: #e8f4ff;
+    border-left: 4px solid #17a2b8;
+    padding: 0.8rem;
+    margin-top: 1rem;
+    border-radius: 4px;
+    font-weight: 500;
+    color: #0c5460;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.auto-fill-message i {
+    color: #17a2b8;
+    font-size: 1.2rem;
+}
+
 .ocr-apply-btn {
     background-color: #28a745;
     margin-top: 0.5rem;

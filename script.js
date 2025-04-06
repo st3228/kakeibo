@@ -375,7 +375,7 @@ function displayOCRResults(extractedInfo) {
     // Add heading
     resultsElement.innerHTML = `
         <h3>レシート解析結果</h3>
-        <p>以下の情報が検出されました：</p>
+        <p>以下の情報が検出され、自動入力されました：</p>
     `;
     
     // Add date info if available
@@ -417,16 +417,16 @@ function displayOCRResults(extractedInfo) {
         `;
     }
     
-    // Add apply button
-    if (extractedInfo.date || extractedInfo.storeName || extractedInfo.amount) {
+    // Add message if no information was extracted
+    if (!extractedInfo.date && !extractedInfo.storeName && !extractedInfo.amount) {
         resultsElement.innerHTML += `
-            <button id="apply-ocr-btn" class="btn ocr-apply-btn">
-                <i class="fas fa-check"></i> この情報を適用する
-            </button>
+            <p><em>レシートから情報を抽出できませんでした。手動で入力してください。</em></p>
         `;
     } else {
         resultsElement.innerHTML += `
-            <p><em>レシートから情報を抽出できませんでした。手動で入力してください。</em></p>
+            <p class="auto-fill-message">
+                <i class="fas fa-info-circle"></i> 抽出された情報は自動的にフォームに入力されました。必要に応じて修正してください。
+            </p>
         `;
     }
     
@@ -434,11 +434,8 @@ function displayOCRResults(extractedInfo) {
     const formSection = document.querySelector('.expense-form');
     formSection.insertBefore(resultsElement, formSection.querySelector('form'));
     
-    // Add event listener to apply button
-    const applyBtn = document.getElementById('apply-ocr-btn');
-    if (applyBtn) {
-        applyBtn.addEventListener('click', applyOCRResults);
-    }
+    // Automatically apply OCR results to form
+    applyOCRResults();
 }
 
 // Get confidence class based on confidence value
