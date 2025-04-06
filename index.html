@@ -19,11 +19,15 @@
                 <div class="camera-container">
                     <video id="camera" autoplay playsinline></video>
                     <canvas id="canvas" style="display: none;"></canvas>
-                    <div class="camera-controls">
-                        <button id="capture-btn" class="btn"><i class="fas fa-camera"></i> 撮影</button>
-                        <button id="retake-btn" class="btn" style="display: none;"><i class="fas fa-redo"></i> 再撮影</button>
-                    </div>
-                    <div id="photo-preview" class="photo-preview" style="display: none;"></div>
+                <div class="camera-controls">
+                    <button id="capture-btn" class="btn"><i class="fas fa-camera"></i> 撮影</button>
+                    <button id="retake-btn" class="btn" style="display: none;"><i class="fas fa-redo"></i> 再撮影</button>
+                </div>
+                <div id="photo-preview" class="photo-preview" style="display: none;"></div>
+                <div class="extract-controls" style="display: none;" id="extract-controls">
+                    <p class="extract-instructions">レシートの写真から日付、店舗名、金額などの情報を自動的に読み取ることができます。</p>
+                    <button id="extract-btn" class="btn extract-btn"><i class="fas fa-magic"></i> レシートから情報を抽出</button>
+                </div>
                 </div>
             </section>
 
