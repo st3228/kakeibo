@@ -24,7 +24,18 @@ let ocrResults = null;
 
 // Initialize Tesseract.js worker
 async function initOCR() {
+    console.log('initOCR関数が呼び出されました');
+    
+    // Check if Tesseract is available
+    if (typeof Tesseract === 'undefined') {
+        console.error('Tesseractライブラリが読み込まれていません');
+        return;
+    }
+    
+    console.log('Tesseractライブラリが利用可能です');
+    
     try {
+        console.log('OCRワーカーの初期化を開始します...');
         ocrWorker = await Tesseract.createWorker('jpn');
         console.log('OCRワーカーが初期化されました');
     } catch (error) {
@@ -81,12 +92,29 @@ function addEventListeners() {
     captureBtn.addEventListener('click', capturePhoto);
     retakeBtn.addEventListener('click', retakePhoto);
     
-    // Extract button
-    document.getElementById('extract-btn').addEventListener('click', function() {
-        if (capturedImage) {
-            processImageWithOCR(capturedImage);
-        }
-    });
+// Extract button
+document.getElementById('extract-btn').addEventListener('click', function() {
+    if (capturedImage) {
+        // 本番環境ではこちらを使用
+        // processImageWithOCR(capturedImage);
+        
+        // テスト用のモックデータ
+        console.log('テスト用のモックデータを使用します');
+        const mockResult = {
+            date: '2025年4月6日',
+            storeName: 'テストスーパー',
+            amount: '1250',
+            confidence: {
+                date: 0.9,
+                store: 0.8,
+                amount: 0.95
+            },
+            fullText: 'テストスーパー\n2025年4月6日\n商品A 500円\n商品B 750円\n合計 1250円'
+        };
+        ocrResults = mockResult;
+        displayOCRResults(mockResult);
+    }
+});
     
     // Form submission
     expenseForm.addEventListener('submit', saveExpense);
@@ -866,6 +894,54 @@ function setupManualUpload() {
     });
 }
 
+// テスト用の関数 - 自動的にモックデータを表示
+function testAutoFill() {
+    console.log('テスト用の自動入力を実行します');
+    
+    // テスト用のモックデータ
+    const mockResult = {
+        date: '2025年4月6日',
+        storeName: 'テストスーパー',
+        amount: '1250',
+        confidence: {
+            date: 0.9,
+            store: 0.8,
+            amount: 0.95
+        },
+        fullText: 'テストスーパー\n2025年4月6日\n商品A 500円\n商品B 750円\n合計 1250円'
+    };
+    
+    // 画像をキャプチャしたように見せかける
+    capturedImage = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+    
+    // 画像プレビューを表示
+    photoPreview.innerHTML = `<img src="${capturedImage}" alt="テスト用レシート">`;
+    photoPreview.style.display = 'block';
+    
+    // カメラを非表示
+    if (cameraElement) {
+        cameraElement.style.display = 'none';
+    }
+    
+    // 撮影ボタンを非表示、再撮影ボタンを表示
+    if (captureBtn) {
+        captureBtn.style.display = 'none';
+    }
+    if (retakeBtn) {
+        retakeBtn.style.display = 'inline-flex';
+    }
+    
+    // 抽出コントロールを表示
+    const extractControls = document.getElementById('extract-controls');
+    if (extractControls) {
+        extractControls.style.display = 'block';
+    }
+    
+    // OCR結果を表示
+    ocrResults = mockResult;
+    displayOCRResults(mockResult);
+}
+
 // Initialize the application when the DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     init();
@@ -911,4 +987,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelector('.camera-container').style.display = 'none';
         document.getElementById('camera-error').style.display = 'block';
     }
+    
+    // テスト用の自動入力を実行（デバッグ用）
+    setTimeout(testAutoFill, 1000);
 });

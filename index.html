@@ -134,6 +134,18 @@
     <!-- Tesseract.js for OCR -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
     
+    <!-- Check if Tesseract.js is loaded -->
+    <script>
+        window.addEventListener('DOMContentLoaded', function() {
+            console.log('DOMContentLoaded イベントが発生しました');
+            if (typeof Tesseract !== 'undefined') {
+                console.log('Tesseractライブラリが正常に読み込まれました');
+            } else {
+                console.error('Tesseractライブラリの読み込みに失敗しました');
+            }
+        });
+    </script>
+    
     <!-- Main script -->
     <script src="script.js"></script>
     
