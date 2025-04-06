@@ -95,24 +95,8 @@ function addEventListeners() {
 // Extract button
 document.getElementById('extract-btn').addEventListener('click', function() {
     if (capturedImage) {
-        // 本番環境ではこちらを使用
-        // processImageWithOCR(capturedImage);
-        
-        // テスト用のモックデータ
-        console.log('テスト用のモックデータを使用します');
-        const mockResult = {
-            date: '2025年4月6日',
-            storeName: 'テストスーパー',
-            amount: '1250',
-            confidence: {
-                date: 0.9,
-                store: 0.8,
-                amount: 0.95
-            },
-            fullText: 'テストスーパー\n2025年4月6日\n商品A 500円\n商品B 750円\n合計 1250円'
-        };
-        ocrResults = mockResult;
-        displayOCRResults(mockResult);
+        // 実際のOCR処理を使用
+        processImageWithOCR(capturedImage);
     }
 });
     
@@ -988,6 +972,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('camera-error').style.display = 'block';
     }
     
-    // テスト用の自動入力を実行（デバッグ用）
-    setTimeout(testAutoFill, 1000);
+    // テスト用の自動入力は削除
+    // setTimeout(testAutoFill, 1000);
 });
