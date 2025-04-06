@@ -135,6 +135,8 @@ async function capturePhoto() {
 
 // Process image with OCR
 async function processImageWithOCR(imageData) {
+    console.log('processImageWithOCR が呼び出されました');
+    
     // Clear previous OCR results
     ocrResults = null;
     
@@ -159,15 +161,20 @@ async function processImageWithOCR(imageData) {
         }
         
         // Recognize text in the image
+        console.log('OCR認識を開始します...');
         const result = await ocrWorker.recognize(imageData);
         console.log('OCR結果:', result);
         
         // Extract information from OCR result
+        console.log('情報抽出を開始します...');
         const extractedInfo = extractInformationFromOCR(result);
+        console.log('抽出された情報:', extractedInfo);
         ocrResults = extractedInfo;
         
         // Display OCR results
+        console.log('OCR結果を表示します...');
         displayOCRResults(extractedInfo);
+        console.log('OCR結果の表示が完了しました');
     } catch (error) {
         console.error('OCR処理中にエラーが発生しました:', error);
     } finally {
@@ -331,74 +338,106 @@ function extractInformationFromOCR(ocrResult) {
 
 // Display OCR results
 function displayOCRResults(extractedInfo) {
-    // Create OCR results element
-    const resultsElement = document.createElement('div');
-    resultsElement.className = 'ocr-results';
+    console.log('displayOCRResults関数が呼び出されました', extractedInfo);
     
-    // Add heading
-    resultsElement.innerHTML = `
-        <h3>レシート解析結果</h3>
-        <p>以下の情報が検出され、自動入力されました：</p>
-    `;
-    
-    // Add date info if available
-    if (extractedInfo.date) {
-        const confidenceClass = getConfidenceClass(extractedInfo.confidence.date);
-        resultsElement.innerHTML += `
-            <p>
-                <strong>日付:</strong> ${extractedInfo.date}
-                <span class="confidence ${confidenceClass}">
-                    (信頼度: ${Math.round(extractedInfo.confidence.date * 100)}%)
-                </span>
-            </p>
+    try {
+        // Create OCR results element
+        const resultsElement = document.createElement('div');
+        resultsElement.className = 'ocr-results';
+        
+        // Add heading
+        resultsElement.innerHTML = `
+            <h3>レシート解析結果</h3>
+            <p>以下の情報が検出され、自動入力されました：</p>
         `;
+        
+        console.log('OCR結果要素を作成しました');
+        
+        // Add date info if available
+        if (extractedInfo.date) {
+            const confidenceClass = getConfidenceClass(extractedInfo.confidence.date);
+            resultsElement.innerHTML += `
+                <p>
+                    <strong>日付:</strong> ${extractedInfo.date}
+                    <span class="confidence ${confidenceClass}">
+                        (信頼度: ${Math.round(extractedInfo.confidence.date * 100)}%)
+                    </span>
+                </p>
+            `;
+            console.log('日付情報を追加しました:', extractedInfo.date);
+        }
+        
+        // Add store info if available
+        if (extractedInfo.storeName) {
+            const confidenceClass = getConfidenceClass(extractedInfo.confidence.store);
+            resultsElement.innerHTML += `
+                <p>
+                    <strong>店舗名:</strong> ${extractedInfo.storeName}
+                    <span class="confidence ${confidenceClass}">
+                        (信頼度: ${Math.round(extractedInfo.confidence.store * 100)}%)
+                    </span>
+                </p>
+            `;
+            console.log('店舗名情報を追加しました:', extractedInfo.storeName);
+        }
+        
+        // Add amount info if available
+        if (extractedInfo.amount) {
+            const confidenceClass = getConfidenceClass(extractedInfo.confidence.amount);
+            resultsElement.innerHTML += `
+                <p>
+                    <strong>金額:</strong> ${extractedInfo.amount}円
+                    <span class="confidence ${confidenceClass}">
+                        (信頼度: ${Math.round(extractedInfo.confidence.amount * 100)}%)
+                    </span>
+                </p>
+            `;
+            console.log('金額情報を追加しました:', extractedInfo.amount);
+        }
+        
+        // Add message if no information was extracted
+        if (!extractedInfo.date && !extractedInfo.storeName && !extractedInfo.amount) {
+            resultsElement.innerHTML += `
+                <p><em>レシートから情報を抽出できませんでした。手動で入力してください。</em></p>
+            `;
+            console.log('情報が抽出できなかったメッセージを追加しました');
+        } else {
+            resultsElement.innerHTML += `
+                <p class="auto-fill-message">
+                    <i class="fas fa-info-circle"></i> 抽出された情報は自動的にフォームに入力されました。必要に応じて修正してください。
+                </p>
+            `;
+            console.log('自動入力メッセージを追加しました');
+        }
+        
+        // Insert results before the form
+        const formSection = document.querySelector('.expense-form');
+        console.log('フォームセクション要素:', formSection);
+        
+        if (formSection) {
+            const formElement = formSection.querySelector('form');
+            console.log('フォーム要素:', formElement);
+            
+            if (formElement) {
+                formSection.insertBefore(resultsElement, formElement);
+                console.log('OCR結果要素をDOMに挿入しました');
+            } else {
+                console.error('フォーム要素が見つかりません');
+                // フォールバック: フォームセクションの先頭に追加
+                formSection.prepend(resultsElement);
+                console.log('フォールバック: OCR結果要素をフォームセクションの先頭に追加しました');
+            }
+        } else {
+            console.error('フォームセクション要素が見つかりません');
+        }
+        
+        // Automatically apply OCR results to form
+        console.log('applyOCRResults関数を呼び出します');
+        applyOCRResults();
+        console.log('OCR結果の表示と適用が完了しました');
+    } catch (error) {
+        console.error('displayOCRResults関数でエラーが発生しました:', error);
     }
-    
-    // Add store info if available
-    if (extractedInfo.storeName) {
-        const confidenceClass = getConfidenceClass(extractedInfo.confidence.store);
-        resultsElement.innerHTML += `
-            <p>
-                <strong>店舗名:</strong> ${extractedInfo.storeName}
-                <span class="confidence ${confidenceClass}">
-                    (信頼度: ${Math.round(extractedInfo.confidence.store * 100)}%)
-                </span>
-            </p>
-        `;
-    }
-    
-    // Add amount info if available
-    if (extractedInfo.amount) {
-        const confidenceClass = getConfidenceClass(extractedInfo.confidence.amount);
-        resultsElement.innerHTML += `
-            <p>
-                <strong>金額:</strong> ${extractedInfo.amount}円
-                <span class="confidence ${confidenceClass}">
-                    (信頼度: ${Math.round(extractedInfo.confidence.amount * 100)}%)
-                </span>
-            </p>
-        `;
-    }
-    
-    // Add message if no information was extracted
-    if (!extractedInfo.date && !extractedInfo.storeName && !extractedInfo.amount) {
-        resultsElement.innerHTML += `
-            <p><em>レシートから情報を抽出できませんでした。手動で入力してください。</em></p>
-        `;
-    } else {
-        resultsElement.innerHTML += `
-            <p class="auto-fill-message">
-                <i class="fas fa-info-circle"></i> 抽出された情報は自動的にフォームに入力されました。必要に応じて修正してください。
-            </p>
-        `;
-    }
-    
-    // Insert results before the form
-    const formSection = document.querySelector('.expense-form');
-    formSection.insertBefore(resultsElement, formSection.querySelector('form'));
-    
-    // Automatically apply OCR results to form
-    applyOCRResults();
 }
 
 // Get confidence class based on confidence value

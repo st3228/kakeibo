@@ -18,18 +18,29 @@
         <main>
             <section class="camera-section">
                 <h2>レシートを撮影</h2>
+                <div id="camera-error" style="display: none;">
+                    <div class="alert alert-warning">
+                        <p><i class="fas fa-exclamation-triangle"></i> カメラへのアクセスができません。</p>
+                        <p>カメラの使用を許可するか、レシート画像を直接アップロードしてください。</p>
+                        <div class="manual-upload">
+                            <input type="file" id="receipt-upload" accept="image/*" class="file-input">
+                            <label for="receipt-upload" class="btn"><i class="fas fa-upload"></i> レシート画像をアップロード</label>
+                        </div>
+                        <div id="manual-upload-preview" style="display: none; margin-top: 10px;"></div>
+                    </div>
+                </div>
                 <div class="camera-container">
                     <video id="camera" autoplay playsinline></video>
                     <canvas id="canvas" style="display: none;"></canvas>
-                <div class="camera-controls">
-                    <button id="capture-btn" class="btn"><i class="fas fa-camera"></i> 撮影</button>
-                    <button id="retake-btn" class="btn" style="display: none;"><i class="fas fa-redo"></i> 再撮影</button>
-                </div>
-                <div id="photo-preview" class="photo-preview" style="display: none;"></div>
-                <div class="extract-controls" style="display: none;" id="extract-controls">
-                    <p class="extract-instructions">レシートの写真から日付、店舗名、金額などの情報を自動的に読み取ることができます。</p>
-                    <button id="extract-btn" class="btn extract-btn"><i class="fas fa-magic"></i> レシートから情報を抽出</button>
-                </div>
+                    <div class="camera-controls">
+                        <button id="capture-btn" class="btn"><i class="fas fa-camera"></i> 撮影</button>
+                        <button id="retake-btn" class="btn" style="display: none;"><i class="fas fa-redo"></i> 再撮影</button>
+                    </div>
+                    <div id="photo-preview" class="photo-preview" style="display: none;"></div>
+                    <div class="extract-controls" style="display: none;" id="extract-controls">
+                        <p class="extract-instructions">レシートの写真から日付、店舗名、金額などの情報を自動的に読み取ることができます。</p>
+                        <button id="extract-btn" class="btn extract-btn"><i class="fas fa-magic"></i> レシートから情報を抽出</button>
+                    </div>
                 </div>
             </section>
 
