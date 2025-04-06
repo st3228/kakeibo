@@ -368,6 +368,34 @@ footer {
     background-color: #218838;
 }
 
+.extract-controls {
+    margin-top: 1rem;
+    text-align: center;
+    width: 100%;
+}
+
+.extract-instructions {
+    margin-bottom: 0.8rem;
+    color: #555;
+    font-size: 0.95rem;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.4;
+}
+
+.extract-btn {
+    background-color: #17a2b8;
+    font-size: 1.1rem;
+    padding: 0.8rem 1.5rem;
+    width: 100%;
+    max-width: 500px;
+}
+
+.extract-btn:hover {
+    background-color: #138496;
+}
+
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }

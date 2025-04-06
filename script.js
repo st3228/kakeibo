@@ -81,6 +81,13 @@ function addEventListeners() {
     captureBtn.addEventListener('click', capturePhoto);
     retakeBtn.addEventListener('click', retakePhoto);
     
+    // Extract button
+    document.getElementById('extract-btn').addEventListener('click', function() {
+        if (capturedImage) {
+            processImageWithOCR(capturedImage);
+        }
+    });
+    
     // Form submission
     expenseForm.addEventListener('submit', saveExpense);
     
@@ -122,8 +129,8 @@ async function capturePhoto() {
     captureBtn.style.display = 'none';
     retakeBtn.style.display = 'inline-flex';
     
-    // Process image with OCR
-    processImageWithOCR(capturedImage);
+    // Show extract button
+    document.getElementById('extract-controls').style.display = 'block';
 }
 
 // Process image with OCR
@@ -371,9 +378,17 @@ function retakePhoto() {
     photoPreview.style.display = 'none';
     captureBtn.style.display = 'inline-flex';
     retakeBtn.style.display = 'none';
+    document.getElementById('extract-controls').style.display = 'none';
+    
+    // Remove OCR results if any
+    const previousResults = document.querySelector('.ocr-results');
+    if (previousResults) {
+        previousResults.remove();
+    }
     
     // Clear captured image
     capturedImage = null;
+    ocrResults = null;
 }
 
 // Save expense data
@@ -538,6 +553,7 @@ function editExpense(id) {
         cameraElement.style.display = 'none';
         captureBtn.style.display = 'none';
         retakeBtn.style.display = 'inline-flex';
+        document.getElementById('extract-controls').style.display = 'block';
     }
     
     // Remove the expense from the array
@@ -652,8 +668,8 @@ function setupManualUpload() {
                 photoPreview.style.display = 'block';
                 document.getElementById('manual-upload-preview').style.display = 'block';
                 
-                // Process uploaded image with OCR
-                processImageWithOCR(capturedImage);
+                // Show extract button
+                document.getElementById('extract-controls').style.display = 'block';
             };
             reader.readAsDataURL(file);
         }
