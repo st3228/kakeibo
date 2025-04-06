@@ -144,6 +144,49 @@ async function processImageWithOCR(imageData) {
         previousResults.remove();
     }
     
+    try {
+        // Show loading indicator
+        document.getElementById('ocr-loading').style.display = 'flex';
+        
+        // Check if Python processing is available
+        if (window.processImagePy) {
+            console.log('Using Python image processing');
+            
+            // Process image with Python
+            try {
+                // Wait for PyScript to be fully loaded
+                if (document.querySelector('py-script').hasAttribute('ready')) {
+                    // Process image with Python
+                    const extractedInfo = await window.processImagePy(imageData);
+                    console.log('Python OCR結果:', extractedInfo);
+                    
+                    ocrResults = extractedInfo;
+                    displayOCRResults(extractedInfo);
+                } else {
+                    // Fallback to JavaScript OCR if PyScript is not ready
+                    console.log('PyScript not ready, falling back to JavaScript OCR');
+                    await processWithJavaScriptOCR(imageData);
+                }
+            } catch (error) {
+                console.error('Python OCR処理中にエラーが発生しました:', error);
+                // Fallback to JavaScript OCR
+                await processWithJavaScriptOCR(imageData);
+            }
+        } else {
+            // Fallback to JavaScript OCR
+            console.log('Python processing not available, using JavaScript OCR');
+            await processWithJavaScriptOCR(imageData);
+        }
+    } catch (error) {
+        console.error('OCR処理中にエラーが発生しました:', error);
+    } finally {
+        // Hide loading indicator
+        document.getElementById('ocr-loading').style.display = 'none';
+    }
+}
+
+// Process image with JavaScript OCR (fallback)
+async function processWithJavaScriptOCR(imageData) {
     // Check if OCR worker is initialized
     if (!ocrWorker) {
         try {
@@ -155,12 +198,9 @@ async function processImageWithOCR(imageData) {
     }
     
     try {
-        // Show loading indicator
-        document.getElementById('ocr-loading').style.display = 'flex';
-        
         // Recognize text in the image
         const result = await ocrWorker.recognize(imageData);
-        console.log('OCR結果:', result);
+        console.log('JavaScript OCR結果:', result);
         
         // Extract information from OCR result
         const extractedInfo = extractInformationFromOCR(result);
@@ -169,10 +209,7 @@ async function processImageWithOCR(imageData) {
         // Display OCR results
         displayOCRResults(extractedInfo);
     } catch (error) {
-        console.error('OCR処理中にエラーが発生しました:', error);
-    } finally {
-        // Hide loading indicator
-        document.getElementById('ocr-loading').style.display = 'none';
+        console.error('JavaScript OCR処理中にエラーが発生しました:', error);
     }
 }
 
@@ -181,42 +218,140 @@ function extractInformationFromOCR(ocrResult) {
     const text = ocrResult.data.text;
     const lines = text.split('\n').filter(line => line.trim() !== '');
     
-    // Extract date
-    const datePattern = /(\d{4}[年/\-\.]\s*\d{1,2}[月/\-\.]\s*\d{1,2}|\d{1,2}[月/\-\.]\s*\d{1,2})/;
-    const dateMatch = text.match(datePattern);
-    const date = dateMatch ? dateMatch[0] : '';
+    // Log the full text for debugging
+    console.log('OCR抽出テキスト:', text);
     
-    // Extract store name (usually in the first few lines)
-    let storeName = '';
-    for (let i = 0; i < Math.min(5, lines.length); i++) {
-        // Skip lines that are likely not store names (contain specific patterns)
-        if (!lines[i].match(/合計|小計|税|円|日付|時間|レシート|領収書|¥|\d{1,2}\/\d{1,2}/i)) {
-            storeName = lines[i].trim();
+    // Extract date - improved pattern matching
+    let date = '';
+    let dateConfidence = 0;
+    
+    // Try multiple date patterns
+    const datePatterns = [
+        // YYYY年MM月DD日 or YYYY/MM/DD
+        /(\d{4}[年/\-\.]\s*\d{1,2}[月/\-\.]\s*\d{1,2}[日]?)/,
+        // MM月DD日 or MM/DD
+        /(\d{1,2}[月/\-\.]\s*\d{1,2}[日]?)/,
+        // YY/MM/DD
+        /(\d{2}\/\d{1,2}\/\d{1,2})/,
+        // YYYY-MM-DD
+        /(\d{4}-\d{1,2}-\d{1,2})/
+    ];
+    
+    for (const pattern of datePatterns) {
+        const match = text.match(pattern);
+        if (match) {
+            date = match[0];
+            dateConfidence = 0.8; // Higher confidence for explicit date formats
             break;
         }
     }
     
-    // Extract amount (look for total amount)
-    const amountPattern = /(合計|小計|総額|お買上げ|計).*?(\d[\d,]*)/i;
-    const amountMatch = text.match(amountPattern);
-    let amount = '';
-    
-    if (amountMatch) {
-        // Extract only numbers and remove commas
-        amount = amountMatch[2].replace(/,/g, '');
-    } else {
-        // Try to find any number followed by "円" or "¥"
-        const altAmountPattern = /(\d[\d,]*)(?:\s*)(?:円|¥)/;
-        const altAmountMatch = text.match(altAmountPattern);
-        if (altAmountMatch) {
-            amount = altAmountMatch[1].replace(/,/g, '');
+    // If no date found, look for lines with "日付" or "Date"
+    if (!date) {
+        for (let i = 0; i < lines.length; i++) {
+            if (lines[i].includes('日付') || lines[i].toLowerCase().includes('date')) {
+                // Check if the next line might contain a date
+                if (i + 1 < lines.length) {
+                    const nextLine = lines[i + 1];
+                    // Look for numbers and separators
+                    if (/\d+[\/\-年月日\.]/.test(nextLine)) {
+                        date = nextLine.trim();
+                        dateConfidence = 0.6;
+                        break;
+                    }
+                }
+            }
         }
     }
     
-    // Calculate confidence scores (simple heuristic)
-    const dateConfidence = date ? 0.7 : 0;
-    const storeConfidence = storeName ? 0.6 : 0;
-    const amountConfidence = amount ? 0.8 : 0;
+    // Extract store name with improved logic
+    let storeName = '';
+    let storeConfidence = 0;
+    
+    // Common store name indicators
+    const storeIndicators = ['店名', '店舗', 'ストア', 'マート', 'ショップ', 'STORE', 'SHOP'];
+    
+    // First check for lines with store indicators
+    for (let i = 0; i < Math.min(10, lines.length); i++) {
+        const line = lines[i];
+        
+        // Check if line contains store indicators
+        for (const indicator of storeIndicators) {
+            if (line.includes(indicator)) {
+                // Extract store name from this line or the next
+                const parts = line.split(/[:：]|\s{2,}/);
+                if (parts.length > 1) {
+                    storeName = parts[1].trim();
+                } else if (i + 1 < lines.length) {
+                    storeName = lines[i + 1].trim();
+                }
+                
+                if (storeName) {
+                    storeConfidence = 0.8;
+                    break;
+                }
+            }
+        }
+        
+        if (storeName) break;
+    }
+    
+    // If no store name found with indicators, use the traditional approach
+    if (!storeName) {
+        // Look at the first few lines for potential store names
+        for (let i = 0; i < Math.min(5, lines.length); i++) {
+            // Skip lines that are likely not store names
+            if (!lines[i].match(/合計|小計|税|円|日付|時間|レシート|領収書|¥|\d{1,2}\/\d{1,2}|^\s*\d+\s*$/i)) {
+                storeName = lines[i].trim();
+                storeConfidence = 0.6;
+                break;
+            }
+        }
+    }
+    
+    // Extract amount with improved pattern matching
+    let amount = '';
+    let amountConfidence = 0;
+    
+    // Try multiple amount patterns in order of reliability
+    const amountPatterns = [
+        // 合計 or 小計 followed by numbers
+        {pattern: /(合計|小計|総額|お買上げ|計).*?(\d[\d,]*)/i, confidence: 0.9},
+        // Numbers followed by 円 or ¥
+        {pattern: /(\d[\d,]*)(?:\s*)(?:円|¥)/i, confidence: 0.8},
+        // Just look for large numbers (likely to be totals)
+        {pattern: /(\d{3,}[\d,]*)/i, confidence: 0.5}
+    ];
+    
+    for (const {pattern, confidence} of amountPatterns) {
+        const match = text.match(pattern);
+        if (match) {
+            // For the first pattern, we want the second capture group
+            const amountStr = pattern === amountPatterns[0].pattern ? match[2] : match[1];
+            amount = amountStr.replace(/,/g, '');
+            amountConfidence = confidence;
+            break;
+        }
+    }
+    
+    // If still no amount found, look for lines with "合計" or "Total"
+    if (!amount) {
+        for (let i = 0; i < lines.length; i++) {
+            if (lines[i].includes('合計') || lines[i].toLowerCase().includes('total')) {
+                // Extract numbers from this line
+                const numbers = lines[i].match(/\d[\d,]*/g);
+                if (numbers && numbers.length > 0) {
+                    // Use the largest number as it's likely the total
+                    amount = numbers.reduce((max, num) => {
+                        const value = parseInt(num.replace(/,/g, ''));
+                        return value > max ? value : max;
+                    }, 0).toString();
+                    amountConfidence = 0.7;
+                    break;
+                }
+            }
+        }
+    }
     
     return {
         date,
@@ -323,40 +458,96 @@ function applyOCRResults() {
     
     // Apply date if available
     if (ocrResults.date) {
-        // Try to convert Japanese date format to ISO format
+        // Try to convert various date formats to ISO format
         try {
             let dateStr = ocrResults.date;
+            let year, month, day;
             
-            // Replace Japanese characters with standard separators
-            dateStr = dateStr.replace(/年/g, '-').replace(/月/g, '-').replace(/日/g, '');
+            // Clean up the date string
+            dateStr = dateStr.trim()
+                .replace(/年/g, '-')
+                .replace(/月/g, '-')
+                .replace(/日/g, '')
+                .replace(/\s+/g, '')
+                .replace(/\./g, '-');
             
-            // Handle different date formats
-            let dateParts;
-            if (dateStr.includes('-')) {
-                dateParts = dateStr.split('-');
-            } else if (dateStr.includes('/')) {
-                dateParts = dateStr.split('/');
-            } else if (dateStr.includes('.')) {
-                dateParts = dateStr.split('.');
-            }
+            console.log('Cleaned date string:', dateStr);
             
-            if (dateParts) {
-                // If year is missing, add current year
-                if (dateParts.length === 2) {
-                    const currentYear = new Date().getFullYear();
-                    dateParts.unshift(currentYear.toString());
+            // Try to extract year, month, day using regex
+            const fullDateMatch = dateStr.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+            const shortDateMatch = dateStr.match(/(\d{1,2})[\/\-](\d{1,2})/);
+            const yymmddMatch = dateStr.match(/(\d{2})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+            
+            if (fullDateMatch) {
+                // YYYY-MM-DD format
+                [, year, month, day] = fullDateMatch;
+            } else if (yymmddMatch) {
+                // YY-MM-DD format
+                const yy = yymmddMatch[1];
+                month = yymmddMatch[2];
+                day = yymmddMatch[3];
+                
+                // Assume 20xx for years less than 50, 19xx otherwise
+                year = parseInt(yy) < 50 ? `20${yy}` : `19${yy}`;
+            } else if (shortDateMatch) {
+                // MM-DD format
+                month = shortDateMatch[1];
+                day = shortDateMatch[2];
+                year = new Date().getFullYear().toString();
+            } else {
+                // Try to extract numbers from the string
+                const numbers = dateStr.match(/\d+/g);
+                if (numbers && numbers.length >= 2) {
+                    // Assume the format is either YMD, MDY, or DMY
+                    if (numbers.length >= 3 && numbers[0].length === 4) {
+                        // Likely YYYY-MM-DD
+                        [year, month, day] = numbers;
+                    } else if (numbers.length >= 3 && parseInt(numbers[1]) <= 12) {
+                        // Likely DD-MM-YYYY or MM-DD-YYYY
+                        // In Japan, MM-DD is more common
+                        month = numbers[0];
+                        day = numbers[1];
+                        year = numbers[2] || new Date().getFullYear().toString();
+                    } else {
+                        // Default to MM-DD-YYYY
+                        month = numbers[0];
+                        day = numbers[1];
+                        year = new Date().getFullYear().toString();
+                    }
+                } else {
+                    // Can't parse, use current date
+                    const today = new Date();
+                    year = today.getFullYear().toString();
+                    month = (today.getMonth() + 1).toString();
+                    day = today.getDate().toString();
                 }
-                
-                // Ensure month and day are two digits
-                if (dateParts[1].length === 1) dateParts[1] = '0' + dateParts[1];
-                if (dateParts[2].length === 1) dateParts[2] = '0' + dateParts[2];
-                
-                // Create ISO date string
-                const isoDate = `${dateParts[0]}-${dateParts[1]}-${dateParts[2]}`;
-                document.getElementById('date').value = isoDate;
             }
+            
+            // Validate year, month, day
+            year = parseInt(year);
+            month = parseInt(month);
+            day = parseInt(day);
+            
+            // Basic validation
+            if (isNaN(year) || isNaN(month) || isNaN(day) || 
+                month < 1 || month > 12 || day < 1 || day > 31) {
+                throw new Error('Invalid date components');
+            }
+            
+            // If year is two digits, assume 2000s
+            if (year < 100) {
+                year += year < 50 ? 2000 : 1900;
+            }
+            
+            // Format as ISO date string
+            const isoDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+            document.getElementById('date').value = isoDate;
+            
+            console.log('Converted to ISO date:', isoDate);
         } catch (error) {
             console.error('日付の変換に失敗しました:', error);
+            // Use current date as fallback
+            document.getElementById('date').valueAsDate = new Date();
         }
     }
     
